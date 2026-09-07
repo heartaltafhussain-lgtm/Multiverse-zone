@@ -118,6 +118,11 @@ def scan_symbol(sym, company, df1d):
     for z in sorted(tfs.get("1D", {}).get("zones", []), key=lambda x: -x["score"]):
         lo, hi = min(z["prox"], z["dist"]), max(z["prox"], z["dist"])
         if lo * 0.95 <= ltp <= hi * 1.05 and z["ets"] != "SKIP":
+            # p28 caution: demand buy sirf UP clock me, supply sell sirf DOWN clock me
+            if z["side"] == "DEMAND" and clk == "DOWN":
+                continue
+            if z["side"] == "SUPPLY" and clk == "UP":
+                continue
             best = z
             break
 
