@@ -29,6 +29,9 @@ tr:hover td{background:#1b1433}
 .badge.g{border-color:var(--up);color:var(--up)} .badge.r{border-color:var(--dn);color:var(--dn)}
 .badge.a{border-color:var(--acc);color:var(--acc)} .badge.w{border-color:var(--warn);color:var(--warn)}
 .tblwrap{overflow:auto;max-height:70vh;border-radius:12px}
+a.tvlink{font-weight:700;text-decoration:none;color:var(--txt)}
+a.tvlink.up{color:var(--up)} a.tvlink.dn{color:var(--dn)}
+a.tvlink:hover{color:var(--acc2);text-decoration:underline}
 .anabtn{background:var(--panel2);border:1px solid var(--acc);color:var(--acc);border-radius:8px;padding:3px 9px;cursor:pointer}
 #modal{position:fixed;inset:0;background:rgba(5,4,12,.86);z-index:50;display:none;overflow:auto;padding:24px}
 #modal .mbox{max-width:1080px;margin:auto;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px}
@@ -64,6 +67,7 @@ svg text{font-family:'Segoe UI',system-ui,sans-serif}
       <select id="fSide" onchange="renderTable()"><option value="">All sides</option><option>DEMAND</option><option>SUPPLY</option></select>
       <select id="fScore" onchange="renderTable()"><option value="0">Min score 0</option><option value="5">≥5 (tradeable)</option><option value="7">≥7 (Type-1 S&F)</option></select>
       <select id="fSig" onchange="renderTable()"><option value="">All signals</option><option>BUY SIDE (LTF)</option><option>SELL SIDE (LTF)</option><option>BUY (trend UP)</option><option>SELL (trend DOWN)</option></select>
+      <select id="fSort" onchange="renderTable()"><option value="">Sort: default</option><option value="az">Sort: A → Z</option><option value="za">Sort: Z → A</option><option value="score">Sort: score high→low</option></select>
       <span class="mut" id="countlbl"></span>
     </div>
     <div class="tblwrap"><table id="tbl"><thead><tr>
@@ -140,6 +144,10 @@ function filtered(){
 function renderTable(){
   if(!DATA)return;
   const rows=filtered();
+  const sort=document.getElementById("fSort").value;
+  if(sort==="az")rows.sort((a,b)=>a.sym.localeCompare(b.sym));
+  else if(sort==="za")rows.sort((a,b)=>b.sym.localeCompare(a.sym));
+  else if(sort==="score")rows.sort((a,b)=>((b.best?b.best.score:0)-(a.best?a.best.score:0)));
   document.getElementById("countlbl").textContent=rows.length+" stocks";
   const tb=document.querySelector("#tbl tbody");
   tb.innerHTML=rows.map(s=>{
@@ -148,7 +156,7 @@ function renderTable(){
     const top=z1.slice().sort((a,c)=>c.score-a.score)[0];
     const clk1w=((s.tfs["1W"]||{}).clock)||"—", clk1m=((s.tfs["1M"]||{}).clock)||"—";
     return "<tr>"+
-    '<td><b class="'+(b?(b.side==="DEMAND"?"up":"dn"):"")+'">'+s.sym+'</b><div class="mut" style="font-size:11px">'+(s.comp||"")+'</div></td>'+
+    '<td><a class="tvlink '+(b?(b.side==="DEMAND"?"up":"dn"):"")+'" href="https://in.tradingview.com/chart/?symbol=NSE%3A'+s.sym+'" target="_blank" rel="noopener" title="TradingView chart — '+s.sym+'">📈 '+s.sym+'</a><div class="mut" style="font-size:11px">'+(s.comp||"")+'</div></td>'+
     "<td>₹"+s.ltp+"</td>"+
     '<td><span class="badge '+(String(s.signal).indexOf("BUY")===0?"g":String(s.signal).indexOf("SELL")===0?"r":"w")+'">'+s.signal+"</span></td>"+
     "<td>"+(top? '<span class="badge '+(top.side==="DEMAND"?"g":"r")+'">'+top.pdf_pattern+"</span> "+
@@ -163,7 +171,7 @@ function renderTable(){
 function openModal(sym){
   CUR=(DATA.stocks||[]).find(x=>x.sym===sym); if(!CUR)return;
   SELZ=null;
-  document.getElementById("mTitle").innerHTML='<span class="'+((CUR.best&&CUR.best.side==="DEMAND")?"up":"dn")+'">'+CUR.sym+"</span> — PDF zone analysis";
+  document.getElementById("mTitle").innerHTML='<a class="tvlink '+((CUR.best&&CUR.best.side==="DEMAND")?"up":"dn")+'" href="https://in.tradingview.com/chart/?symbol=NSE%3A'+CUR.sym+'" target="_blank" rel="noopener" title="TradingView chart">📈 '+CUR.sym+"</a> — PDF zone analysis";
   document.getElementById("mSub").textContent=(CUR.comp||"")+" • CMP ₹"+CUR.ltp+" • signal: "+CUR.signal+(CUR.curve?" • curve: "+CUR.curve.band+" ("+CUR.curve.action+")":"");
   const zs=((CUR.tfs["1D"]||{}).zones||[]);
   SELZ=CUR.best||zs.slice().sort((a,b)=>b.score-a.score)[0]||null;
@@ -289,5 +297,5 @@ function calcScore(){
 }
 boot();
 </script>
-<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a376e5b399d3ff0c',t:'MTc4ODc5NjUyMQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</body>
 </html>
