@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🌌 MULTIVERSE ZONE — GTF 'Trading in the Zone' Dashboard</title>
+<style>
+:root{--bg:#0a0714;--panel:#151027;--panel2:#1e1738;--line:#332a55;--txt:#e8e4f7;--mut:#9a91bd;
+--up:#3fb950;--dn:#ff5c5c;--acc:#a78bfa;--acc2:#22d3ee;--warn:#fbbf24}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(1200px 600px at 70% -10%,#2a1b57 0%,var(--bg) 55%);color:var(--txt);font:14px/1.5 'Segoe UI',system-ui,sans-serif}
+header{padding:18px 22px 8px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}
+h1{margin:0;font-size:22px;letter-spacing:.5px}
+h1 .accent{color:var(--acc)} .sub{color:var(--mut);font-size:12px;width:100%}
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin:6px 22px}
+.chip{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:4px 12px;font-size:12px}
+.chip b{color:var(--acc2)}
+nav{display:flex;gap:6px;margin:10px 22px;flex-wrap:wrap}
+nav button{background:var(--panel);border:1px solid var(--line);color:var(--txt);border-radius:10px;padding:8px 16px;cursor:pointer;font-size:13px}
+nav button.on{background:var(--panel2);border-color:var(--acc);color:var(--acc)}
+main{padding:0 22px 40px}
+.strip{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0}
+input,select{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:7px 10px;font-size:13px}
+table{border-collapse:collapse;width:100%;font-size:12.6px;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+th{background:var(--panel2);color:var(--acc);text-align:left;padding:9px 10px;position:sticky;top:0}
+td{padding:8px 10px;border-top:1px solid var(--line);vertical-align:top}
+tr:hover td{background:#1b1433}
+.up{color:var(--up)} .dn{color:var(--dn)} .mut{color:var(--mut)} .warn{color:var(--warn)}
+.badge{display:inline-block;border-radius:6px;padding:1px 7px;font-size:11px;font-weight:700;border:1px solid var(--line);background:var(--panel2)}
+.badge.g{border-color:var(--up);color:var(--up)} .badge.r{border-color:var(--dn);color:var(--dn)}
+.badge.a{border-color:var(--acc);color:var(--acc)} .badge.w{border-color:var(--warn);color:var(--warn)}
+.tblwrap{overflow:auto;max-height:70vh;border-radius:12px}
+.anabtn{background:var(--panel2);border:1px solid var(--acc);color:var(--acc);border-radius:8px;padding:3px 9px;cursor:pointer}
+#modal{position:fixed;inset:0;background:rgba(5,4,12,.86);z-index:50;display:none;overflow:auto;padding:24px}
+#modal .mbox{max-width:1080px;margin:auto;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:18px}
+.mhead{display:flex;align-items:center;gap:10px}
+.mhead h3{margin:0;font-size:19px;flex:1}
+.mclose{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:6px 12px;cursor:pointer}
+.grid2{display:grid;grid-template-columns:1.4fr 1fr;gap:14px;margin-top:12px}
+@media(max-width:900px){.grid2{grid-template-columns:1fr}}
+.zcard{background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;margin-bottom:10px;font-size:12.5px}
+.zcard .zh{font-weight:700;color:var(--acc);margin-bottom:4px}
+.zchip{display:inline-block;margin:2px;padding:4px 9px;border-radius:8px;border:1px solid var(--line);background:var(--panel);cursor:pointer;font-size:11.5px}
+.zchip.sel{border-color:var(--acc2);color:var(--acc2)}
+.course{display:grid;grid-template-columns:repeat(auto-fit,minmax(310px,1fr));gap:12px}
+footer{color:var(--mut);font-size:12px;padding:14px 22px 30px;border-top:1px solid var(--line)}
+svg text{font-family:'Segoe UI',system-ui,sans-serif}
+</style>
+</head>
+<body>
+<header>
+  <h1>🌌 <span class="accent">MULTIVERSE</span> ZONE</h1>
+  <div class="sub">Demand–Supply dashboard built 100% on GTF <b>"Trading in the Zone"</b> PDF rules (p3–p37) — zones = leg-in + base + exciting/explosive leg-out • score /8 • entry types • 2:1 setup.</div>
+</header>
+<div class="chips" id="chips"></div>
+<nav>
+  <button class="on" id="tabZ" onclick="showTab('z')">📊 ZONE DASHBOARD</button>
+  <button id="tabC" onclick="showTab('c')">📖 GTF COURSE (12 TOPICS)</button>
+  <button id="tabK" onclick="showTab('k')">🧮 CALCULATORS</button>
+</nav>
+<main>
+  <section id="secZ">
+    <div class="strip">
+      <input id="fSearch" placeholder="🔍 symbol / company…" oninput="renderTable()">
+      <select id="fSide" onchange="renderTable()"><option value="">All sides</option><option>DEMAND</option><option>SUPPLY</option></select>
+      <select id="fScore" onchange="renderTable()"><option value="0">Min score 0</option><option value="5">≥5 (tradeable)</option><option value="7">≥7 (Type-1 S&F)</option></select>
+      <select id="fSig" onchange="renderTable()"><option value="">All signals</option><option>BUY SIDE (LTF)</option><option>SELL SIDE (LTF)</option><option>BUY (trend UP)</option><option>SELL (trend DOWN)</option></select>
+      <span class="mut" id="countlbl"></span>
+    </div>
+    <div class="tblwrap"><table id="tbl"><thead><tr>
+      <th>SYMBOL</th><th>LTP ₹</th><th>SIGNAL (p28/32)</th><th>1D ZONE (pattern • score • entry)</th><th>1W / 1M clock</th><th>CURVE (p31)</th><th></th>
+    </tr></thead><tbody></tbody></table></div>
+  </section>
+
+  <section id="secC" style="display:none"><div class="course" id="courseCards"></div></section>
+
+  <section id="secK" style="display:none">
+    <div class="course">
+      <div class="zcard"><div class="zh">🛡 RISK MANAGEMENT CALCULATOR (p37)</div>
+        <div class="strip">
+          <label class="mut">Capital ₹ <input id="rcCap" type="number" value="100000" oninput="calcRisk()"></label>
+          <label class="mut">Tier <select id="rcTier" onchange="calcRisk()"><option value="1">1% Beginner</option><option value="1.5">1.5% Intermediate</option><option value="2">2% Pro</option></select></label>
+          <label class="mut">Entry ₹ <input id="rcE" type="number" value="125" oninput="calcRisk()"></label>
+          <label class="mut">SL ₹ <input id="rcS" type="number" value="120" oninput="calcRisk()"></label>
+        </div><div id="rcOut"></div></div>
+      <div class="zcard"><div class="zh">📘 TRADE SCORE CALCULATOR (p33, max 8)</div>
+        <div class="strip">
+          <label class="mut">Tests <select id="scT" onchange="calcScore()"><option value="0">0 (fresh)=3</option><option value="1">1=1.5</option><option value="2">2=0</option></select></label>
+          <label class="mut">Departure <select id="scD" onchange="calcScore()"><option value="3">gap=3</option><option value="2">2 exciting=2</option><option value="1">1 exciting=1</option></select></label>
+          <label class="mut">Base candles <select id="scB" onchange="calcScore()"><option value="2">1-3=2</option><option value="1">4-5=1</option><option value="0">&gt;5=0</option></select></label>
+        </div><div id="scOut"></div></div>
+    </div>
+  </section>
+</main>
+<footer>⚠️ Educational dashboard — investment advice nahi. Past performance ≠ future guarantee. Data: GitHub Actions daily scan (yfinance) ya <code>--demo</code> mode. Engine: <code>gtf_pdf_engine.py</code> (51/51 PDF-rule tests pass).</footer>
+
+<div id="modal" onclick="if(event.target===this)closeModal()"><div class="mbox">
+  <div class="mhead"><h3 id="mTitle"></h3><button class="mclose" onclick="closeModal()">✕ Close</button></div>
+  <div class="mut" id="mSub"></div>
+  <div id="mZchips"></div>
+  <div class="grid2"><div id="mChart"></div><div id="mDetail"></div></div>
+</div></div>
+
+<script>
+let DATA=null, CUR=null, SELZ=null;
+async function boot(){
+  try{const r=await fetch("gtf_live_data.json?"+Date.now(),{cache:"no-store"});if(r.ok)DATA=await r.json();}catch(e){}
+  if(!DATA){document.getElementById("chips").innerHTML='<span class="chip dn">❌ gtf_live_data.json nahi mila — scanner chalao (python3 multiverse_scanner.py --demo)</span>';return;}
+  const s=DATA.summary||{};
+  document.getElementById("chips").innerHTML=
+    '<span class="chip">📅 scan <b>'+(DATA.date||"")+'</b></span>'+
+    '<span class="chip">stocks <b>'+(s.stocks!=null?s.stocks:DATA.stocks.length)+'</b></span>'+
+    '<span class="chip up">🟢 Type-1 demand (≥7): <b>'+(s.buy7||0)+'</b></span>'+
+    '<span class="chip dn">🔴 Type-1 supply (≥7): <b>'+(s.sell7||0)+'</b></span>'+
+    '<span class="chip" style="color:var(--acc2)">⏳ live confirmations (p34-35): <b>'+(s.confirmations||0)+'</b></span>'+
+    (DATA.demo?'<span class="chip warn">⚠ DEMO DATA</span>':'');
+  renderTable(); renderCourse(); calcRisk(); calcScore();
+}
+function showTab(t){
+  ["Z","C","K"].forEach(x=>document.getElementById("tab"+x).classList.remove("on"));
+  document.getElementById("tab"+t.toUpperCase()).classList.add("on");
+  document.getElementById("secZ").style.display=t==="z"?"":"none";
+  document.getElementById("secC").style.display=t==="c"?"":"none";
+  document.getElementById("secK").style.display=t==="k"?"":"none";
+}
+function zline(z){return (z.pdf_pattern||"")+" "+(z.prox||0)+"–"+(z.dist||0);}
+function filtered(){
+  const q=(document.getElementById("fSearch").value||"").toLowerCase();
+  const side=document.getElementById("fSide").value;
+  const minS=parseFloat(document.getElementById("fScore").value)||0;
+  const sig=document.getElementById("fSig").value;
+  return (DATA.stocks||[]).filter(s=>{
+    if(q && !(s.sym.toLowerCase().includes(q)||(s.comp||"").toLowerCase().includes(q)))return false;
+    if(sig && s.signal!==sig)return false;
+    const b=s.best;
+    if(side && (!b||b.side!==side))return false;
+    if(minS && (!b||b.score<minS))return false;
+    return true;
+  });
+}
+function renderTable(){
+  if(!DATA)return;
+  const rows=filtered();
+  document.getElementById("countlbl").textContent=rows.length+" stocks";
+  const tb=document.querySelector("#tbl tbody");
+  tb.innerHTML=rows.map(s=>{
+    const b=s.best;
+    const z1=(s.tfs["1D"]||{}).zones||[];
+    const top=z1.slice().sort((a,c)=>c.score-a.score)[0];
+    const clk1w=((s.tfs["1W"]||{}).clock)||"—", clk1m=((s.tfs["1M"]||{}).clock)||"—";
+    return "<tr>"+
+    '<td><b class="'+(b?(b.side==="DEMAND"?"up":"dn"):"")+'">'+s.sym+'</b><div class="mut" style="font-size:11px">'+(s.comp||"")+'</div></td>'+
+    "<td>₹"+s.ltp+"</td>"+
+    '<td><span class="badge '+(String(s.signal).indexOf("BUY")===0?"g":String(s.signal).indexOf("SELL")===0?"r":"w")+'">'+s.signal+"</span></td>"+
+    "<td>"+(top? '<span class="badge '+(top.side==="DEMAND"?"g":"r")+'">'+top.pdf_pattern+"</span> "+
+        top.prox+"–"+top.dist+' <span class="badge a">📘'+top.score+"/8</span> "+
+        (top.exceptional?'<span class="badge w">EXC-'+top.exceptional+"</span> ":"")+
+        '<div class="mut" style="font-size:11px">'+top.et+" • "+(top.strength_label||"")+"</div>":"<span class='mut'>—</span>")+"</td>"+
+    '<td><span class="badge '+(clk1w==="UP"?"g":clk1w==="DOWN"?"r":"w")+'">1W '+clk1w+'</span> <span class="badge '+(clk1m==="UP"?"g":clk1m==="DOWN"?"r":"w")+'">1M '+clk1m+"</span></td>"+
+    "<td>"+(s.curve? '<b>'+(s.curve.band)+"</b> <span class='mut'>"+(s.curve.pos*100).toFixed(0)+"%</span>":'<span class="mut">—</span>')+"</td>"+
+    '<td><button class="anabtn" data-sym="'+s.sym+'" onclick="openModal(this.dataset.sym)">🔍</button></td></tr>';
+  }).join("");
+}
+function openModal(sym){
+  CUR=(DATA.stocks||[]).find(x=>x.sym===sym); if(!CUR)return;
+  SELZ=null;
+  document.getElementById("mTitle").innerHTML='<span class="'+((CUR.best&&CUR.best.side==="DEMAND")?"up":"dn")+'">'+CUR.sym+"</span> — PDF zone analysis";
+  document.getElementById("mSub").textContent=(CUR.comp||"")+" • CMP ₹"+CUR.ltp+" • signal: "+CUR.signal+(CUR.curve?" • curve: "+CUR.curve.band+" ("+CUR.curve.action+")":"");
+  const zs=((CUR.tfs["1D"]||{}).zones||[]);
+  SELZ=CUR.best||zs.slice().sort((a,b)=>b.score-a.score)[0]||null;
+  document.getElementById("mZchips").innerHTML=zs.map((z,i)=>'<span class="zchip'+(SELZ===z?" sel":"")+'" onclick="pickZ('+i+')">'+(z.side==="DEMAND"?"🟢":"🔴")+" "+z.pdf_pattern+" "+z.prox+"–"+z.dist+" 📘"+z.score+"</span>").join("")||'<span class="mut">koi 1D zone nahi</span>';
+  drawModal();
+  document.getElementById("modal").style.display="block";
+}
+function pickZ(i){const zs=((CUR.tfs["1D"]||{}).zones||[]);SELZ=zs[i];openModalChipsOnly();drawModal();}
+function openModalChipsOnly(){
+  const zs=((CUR.tfs["1D"]||{}).zones||[]);
+  document.getElementById("mZchips").innerHTML=zs.map((z,i)=>'<span class="zchip'+(SELZ===z?" sel":"")+'" onclick="pickZ('+i+')">'+(z.side==="DEMAND"?"🟢":"🔴")+" "+z.pdf_pattern+" "+z.prox+"–"+z.dist+" 📘"+z.score+"</span>").join("");
+}
+function closeModal(){document.getElementById("modal").style.display="none";}
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeModal();});
+
+/* ---------- SVG candlestick chart + PDF zone overlays ---------- */
+function drawModal(){
+  const el=document.getElementById("mChart");
+  const cd=CUR.candles; if(!cd){el.innerHTML='<span class="mut">candles nahi</span>';return;}
+  const W=640,H=400,ML=8,MR=64,MT=12,MB=24,n=cd.c.length;
+  let lo=Infinity,hi=-Infinity;
+  for(let i=0;i<n;i++){lo=Math.min(lo,cd.l[i]);hi=Math.max(hi,cd.h[i]);}
+  if(SELZ){lo=Math.min(lo,SELZ.dist,SELZ.setup?SELZ.setup.sl:SELZ.dist);hi=Math.max(hi,SELZ.prox,SELZ.setup?SELZ.setup.target:SELZ.prox);}
+  const pad=(hi-lo)*0.06;lo-=pad;hi+=pad;
+  const y=p=>MT+(hi-p)/(hi-lo)*(H-MT-MB);
+  const x=i=>ML+i*(W-ML-MR)/n+((W-ML-MR)/n)/2;
+  const cw=Math.max(2,((W-ML-MR)/n)*0.62);
+  let svg='<svg viewBox="0 0 '+W+' '+H+'" style="width:100%;background:var(--panel2);border:1px solid var(--line);border-radius:12px">';
+  for(let g=0;g<=4;g++){const p=lo+(hi-lo)*g/4;svg+='<line x1="'+ML+'" x2="'+(W-MR)+'" y1="'+y(p)+'" y2="'+y(p)+'" stroke="#241b45"/><text x="'+(W-MR+4)+'" y="'+(y(p)+4)+'" fill="#9a91bd" font-size="10">'+p.toFixed(1)+"</text>";}
+  // zone overlays (all 1D zones, faded; selected highlighted)
+  const off=cd.offset||0;
+  const zs=((CUR.tfs["1D"]||{}).zones||[]);
+  zs.forEach(z=>{
+    const bi=Math.max(0,(z.legout_idx!=null?z.legout_idx:n-1)-off);
+    const x0=x(bi),dem=z.side==="DEMAND",col=dem?"#3fb950":"#ff5c5c";
+    const op=(z===SELZ)?0.22:0.08;
+    svg+='<rect x="'+x0+'" y="'+y(Math.max(z.prox,z.dist))+'" width="'+(W-MR-x0)+'" height="'+Math.max(2,Math.abs(y(z.dist)-y(z.prox)))+'" fill="'+col+'" opacity="'+op+'" stroke="'+col+'" stroke-opacity="0.6"/>';
+    svg+='<line x1="'+x0+'" x2="'+(W-MR)+'" y1="'+y(z.prox)+'" y2="'+y(z.prox)+'" stroke="'+col+'" stroke-width="1.4"/>';
+    svg+='<line x1="'+x0+'" x2="'+(W-MR)+'" y1="'+y(z.dist)+'" y2="'+y(z.dist)+'" stroke="'+col+'" stroke-dasharray="4 3"/>';
+  });
+  // candles
+  for(let i=0;i<n;i++){
+    const g=cd.c[i]>=cd.o[i],col=g?"#3fb950":"#ff5c5c";
+    svg+='<line x1="'+x(i)+'" x2="'+x(i)+'" y1="'+y(cd.h[i])+'" y2="'+y(cd.l[i])+'" stroke="'+col+'"/>';
+    svg+='<rect x="'+(x(i)-cw/2)+'" y="'+y(Math.max(cd.o[i],cd.c[i]))+'" width="'+cw+'" height="'+Math.max(1.5,Math.abs(y(cd.o[i])-y(cd.c[i])))+'" fill="'+col+'"/>';
+  }
+  // base/legin/legout markers for selected zone
+  if(SELZ){
+    (SELZ.base_idx||[]).forEach(b=>{const i=b-off;if(i>=0&&i<n)svg+='<circle cx="'+x(i)+'" cy="'+y((cd.o[i]+cd.c[i])/2)+'" r="3" fill="#22d3ee"/>';});
+    if(SELZ.legin_idx!=null&&SELZ.legin_idx-off>=0)svg+='<circle cx="'+x(SELZ.legin_idx-off)+'" cy="'+y(cd.h[SELZ.legin_idx-off])+'" r="3.5" fill="#fbbf24"/>';
+    if(SELZ.legout_idx!=null&&SELZ.legout_idx-off>=0&&SELZ.legout_idx-off<n)svg+='<circle cx="'+x(SELZ.legout_idx-off)+'" cy="'+y(cd.l[SELZ.legout_idx-off])+'" r="3.5" fill="#a78bfa"/>';
+    const st=SELZ.setup;
+    if(st){[["ENTRY",st.entry,"#22d3ee",""],["SL",st.sl,"#ff5c5c","4 3"],["TGT 2:1",st.target,"#3fb950","4 3"]].forEach(L=>{
+      svg+='<line x1="'+ML+'" x2="'+(W-MR)+'" y1="'+y(L[1])+'" y2="'+y(L[1])+'" stroke="'+L[2]+'" stroke-dasharray="'+(L[3]||"2 2")+'" stroke-opacity=".8"/><text x="'+ML+'" y="'+(y(L[1])-3)+'" fill="'+L[2]+'" font-size="10">'+L[0]+" ₹"+L[1]+"</text>";});}
+  }
+  svg+='<text x="'+ML+'" y="'+(H-8)+'" fill="#9a91bd" font-size="10">'+(cd.dates[0]||"")+" → "+(cd.dates[n-1]||"")+" • 🟡leg-in 🔵base 🟣leg-out</text></svg>";
+  el.innerHTML=svg;
+  detail();
+}
+function detail(){
+  const d=document.getElementById("mDetail");
+  if(!SELZ){d.innerHTML='<div class="zcard"><div class="zh">koi zone select karo</div></div>';return;}
+  const z=SELZ;
+  d.innerHTML='<div class="zcard"><div class="zh">'+(z.side==="DEMAND"?"🟢 DEMAND":"🔴 SUPPLY")+" — "+z.pdf_pattern+" ("+(z.pdf_kind==="REVERSAL"?"Reversal p9-10":"Continuous p9-10")+")</div>"+
+  "Proximal ₹<b>"+z.prox+"</b> (highest body of base) • Distal ₹<b>"+z.dist+"</b> (lowest wick)"+(z.exceptional?' <span class="badge w">EXCEPTIONAL '+z.exceptional+" (p18-21)</span>":"")+"<br>"+
+  "Marking: "+z.marking+" • wick-to-wick prox alt: ₹"+(z.prox_ww||"—")+"<br>"+
+  "💪 "+(z.strength_label||"—")+" • leg-out "+(z.legout||"—")+"×ATR"+(z.has_gap?" • gap departure ✓":"")+"<br>"+
+  "🕯 base "+z.n_base+" • legout candles "+z.n_legout+" • tests "+z.tests+" "+(z.tests===0?'<span class="up">(FRESH)</span>':"")+"<br>"+
+  "Closing concept (p24): "+(z.closing_ok?'<span class="up">✓ leg-out closed beyond leg-in</span>':'<span class="dn">✗ close nahi hua</span>')+
+  " • Credibility: "+(z.auth===0?'<span class="dn">NON-AUTHENTIC (reaction)</span>':z.auth===2?"reaction + good closing ✓":"<span class='up'>AUTHENTIC fresh</span>")+
+  (z.p22_weak?'<br><span class="warn">⚠ p22: >5 base + legout very strong nahi</span>':"")+"</div>"+
+  '<div class="zcard"><div class="zh">📘 TRADE SCORE '+z.score+"/8 (p33)</div>"+
+  "Strength "+z.dep+"/3 • Freshness "+z.fresh+"/3 • Base "+z.base+"/2<br>"+
+  '<span class="badge '+(z.score>=7?"g":z.score>=5?"a":"r")+'">'+z.et+"</span>"+
+  (z.confirm?'<br><span class="badge w" style="margin-top:4px">⏳ '+z.confirm+"</span>":"")+"</div>"+
+  (z.setup?'<div class="zcard"><div class="zh">🎯 SETUP 2:1 (p16-17)</div>Entry ₹<b>'+z.setup.entry+"</b> • SL ₹<b>"+z.setup.sl+"</b> • Target ₹<b>"+z.setup.target+"</b><br>"+
+  '<span class="mut">Capital ₹</span> <input id="mCap" type="number" value="100000" style="width:90px" oninput="mQty()"> <span id="mQty"></span></div>':"")+
+  '<div class="zcard"><div class="zh">🕐 TIMEFRAMES</div>'+["1D","1W","1M"].map(tf=>{const t=(CUR.tfs[tf]||{});return tf+": <span class='badge "+(t.clock==="UP"?"g":t.clock==="DOWN"?"r":"w")+"'>"+(t.clock||"—")+"</span> ";}).join("")+
+  "<br><span class='mut'>p28: demand buy sirf UP clock me, supply sell sirf DOWN me.</span></div>";
+  mQty();
+}
+function mQty(){
+  const el=document.getElementById("mQty");if(!el||!SELZ||!SELZ.setup)return;
+  const cap=parseFloat(document.getElementById("mCap").value)||0;
+  const per=Math.abs(SELZ.setup.entry-SELZ.setup.sl);
+  el.innerHTML=per>0?"→ qty <b>"+Math.floor(cap*(0.01)/per)+"</b> (1% risk, p37)":"";
+}
+/* ---------- course ---------- */
+function renderCourse(){
+  const T=[["1️⃣ Candle fundamentals (p3)","Candle = open/close/body/wicks. Green: close>open; Red: close<open. Body=dominance, wicks=pressure."],
+  ["2️⃣ Types of candles (p4)","EXCITING = body > 50% of range. EXPLOSIVE = exciting + open-close me big difference. Sirf exciting/explosive candle leg-out ban sakti hai."],
+  ["3️⃣ Base candle (p5)","Base = body < 50% of range (buyers ≈ sellers). Pending orders ka accumulation area."],
+  ["4️⃣ Exciting formation (p4,p25)","Body>50% YA significant gap + base candle = exciting (gap departure = strength 3/3)."],
+  ["5️⃣ Demand strength (p7)","Green leg-out se NORMAL / STRONG (≥1.2×ATR) / VERY STRONG (≥2×ATR ya 2+ exciting) BUYING."],
+  ["6️⃣ Supply strength (p8)","Red leg-out se NORMAL / STRONG / VERY STRONG SELLING — mirror image."],
+  ["7️⃣ Patterns (p9-10)","DBR (reversal) • RBR (continuous) demand; RBD (reversal) • DBD (continuous) supply. Leg-in colour decides."],
+  ["8️⃣ Zone marking (p11-12)","Demand: proximal=highest BODY of base, distal=lowest WICK of base. Supply mirror. Body-to-wick default; wick-to-wick alt."],
+  ["9️⃣ Zone steps (p13-15)","CMP line → left-down/up explosive move → legin+base+legout mark. Legout explosive = max pending orders."],
+  ["🔟 Exceptional marking (p18-21)","Reversal: distal = leg-in extreme wick. Continuous: distal = leg-out extreme wick. Chart pe EXC-LEGIN/LEGOUT badge."],
+  ["1️⃣1️ Candle breakdown + psychology (p22)","Min base = strong. >5 base = weak (0 pts) — jab tak legout VERY STRONG na ho (dashboard SKIP karta hai)."],
+  ["1️⃣2️ Closing concept + credibility (p23-26)","Demand legout close > legin high; supply < legin low. Reaction zone = NON-AUTHENTIC unless good closing."],
+  ["📘 Score & entries (p33-35)","Fresh 3/1.5/0 + gap3/2-exc2/1-exc1 + base2/1/0 = /8. ≥7 Type-1 S&F • 5-6 Type-2/3 confirmation • <5 NO TRADE."],
+  ["🎯 Setup (p16-17)","Entry proximal ke just bahar; SL distal ke bahar with room; Target = 2×(Entry−SL)."],
+  ["🕐 Trend clock (p27-28)","50 SMA: 12-3 UP, 3-6 DOWN, near 3 SIDEWAYS. Counter-trend = dangerous."],
+  ["📍 Curve (p30-32)","Fresh SZ↔DZ proximals ke thirds: VERY HIGH/HIGH=SELL, LOW/VERY LOW=BUY, EQUILIBRIUM=trend follow."],
+  ["🛡 Risk (p37)","1%/1.5%/2% risk tiers; Qty=Risk₹÷(Entry−SL); ~10 trades/month; 2:1 RR."]];
+  document.getElementById("courseCards").innerHTML=T.map(t=>'<div class="zcard"><div class="zh">'+t[0]+'</div><div class="mut">'+t[1]+"</div></div>").join("");
+}
+/* ---------- calculators ---------- */
+function calcRisk(){
+  const cap=+document.getElementById("rcCap").value||0,t=+document.getElementById("rcTier").value||1;
+  const e=+document.getElementById("rcE").value||0,s=+document.getElementById("rcS").value||0;
+  const per=Math.abs(e-s),o=document.getElementById("rcOut");
+  if(per<=0){o.innerHTML='<span class="warn">Entry ≠ SL hona chahiye.</span>';return;}
+  const risk=cap*t/100,q=Math.floor(risk/per),tgt=e>s?e+2*per:e-2*per;
+  o.innerHTML=(e>s?"🟢 DEMAND buy":"🔴 SUPPLY sell")+' • Risk ₹<b>'+risk.toFixed(0)+"</b> • Qty <b>"+q+"</b> • Target (2:1) ₹<b>"+tgt.toFixed(2)+"</b> <span class='mut'>(PDF p17: 125/120→qty 200, tgt 135)</span>";
+}
+function calcScore(){
+  const f=+document.getElementById("scT").value,d=+document.getElementById("scD").value,b=+document.getElementById("scB").value;
+  const map={0:3,1:1.5,2:0};const tot=map[f]+d+b;
+  const et=tot>=7?"TYPE 1 — SET & FORGET (entry proximal ke bahar)":tot>=5?"TYPE 2/3 — CONFIRMATION entry":"NO TRADE (<5)";
+  document.getElementById("scOut").innerHTML='Score <b class="'+(tot>=7?"up":tot>=5?"warn":"dn")+'">'+tot+"/8</b> → "+et;
+}
+boot();
+</script>
+<script>(function(){function c(){var b=a.contentDocument||(a.contentWindow&&a.contentWindow.document);if(b){var d=b.createElement('script');d.innerHTML="window.__CF$cv$params={r:'a376e5b399d3ff0c',t:'MTc4ODc5NjUyMQ=='};var a=document.createElement('script');a.src='/cdn-cgi/challenge-platform/scripts/jsd/main.js';document.getElementsByTagName('head')[0].appendChild(a);";b.getElementsByTagName('head')[0].appendChild(d)}}if(document.body){var a=document.createElement('iframe');a.height=1;a.width=1;a.style.position='absolute';a.style.top=0;a.style.left=0;a.style.border='none';a.style.visibility='hidden';document.body.appendChild(a);if('loading'!==document.readyState)c();else if(window.addEventListener)document.addEventListener('DOMContentLoaded',c);else{var e=document.onreadystatechange||function(){};document.onreadystatechange=function(b){e(b);'loading'!==document.readyState&&(document.onreadystatechange=e,c())}}}})();</script></body>
+</html>
