@@ -1,0 +1,46 @@
+name: Multiverse Zone — Daily NSE 500 Scan
+
+on:
+  schedule:
+    - cron: "37 10 * * 1-5"   # 16:07 IST Mon-Fri (market close ke baad)
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.10"
+
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run Multiverse Zone scanner (GTF PDF engine)
+        run: python3 multiverse_scanner.py
+
+      - name: Commit live JSON back to repo (GitHub Pages feed)
+        run: |
+          git config --global user.name "Multiverse Zone Bot"
+          git config --global user.email "multiverse-zone@github-actions.local"
+          git add gtf_live_data.json
+          git commit -m "🌌 Multiverse Zone scan [$(date +'%Y-%m-%d')]" || echo "No changes to commit"
+          git push
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload scan artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: multiverse-zone-scan
+          path: gtf_live_data.json
+          retention-days: 30
