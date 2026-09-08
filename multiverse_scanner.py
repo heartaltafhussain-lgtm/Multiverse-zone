@@ -23,7 +23,7 @@ from gtf_pdf_engine import (detect_zones_pdf, trend_clock, curve_position,
 CHART_BARS = 60
 UNIVERSE_CSV = "nifty500_universe.csv"
 OUT_JSON = "gtf_live_data.json"
-VERSION = "Multiverse Zone v1.0 — GTF PDF engine (p3-37)"
+VERSION = "Multiverse Zone v1.1 — GTF PDF engine (p3-37) | 1M FIX: period=max"
 
 
 # ---------------------------------------------------------------- data fetch
@@ -37,7 +37,7 @@ def load_universe(top=None):
 def fetch_ohlc(yf_sym):
     import yfinance as yf
     tk = yf.Ticker(yf_sym)
-    h = tk.history(period="2y", interval="1d", auto_adjust=False)
+    h = tk.history(period="max", interval="1d", auto_adjust=False)
     if h is None or len(h) < 60:
         return None
     h = h[["Open", "High", "Low", "Close", "Volume"]].dropna()
