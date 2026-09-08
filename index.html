@@ -21,7 +21,8 @@ main{padding:0 22px 40px}
 .strip{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0}
 input,select{background:var(--panel2);border:1px solid var(--line);color:var(--txt);border-radius:8px;padding:7px 10px;font-size:13px}
 table{border-collapse:collapse;width:100%;font-size:12.6px;background:var(--panel);border:1px solid var(--line);border-radius:12px;overflow:hidden}
-th{background:var(--panel2);color:var(--acc);text-align:left;padding:9px 10px;position:sticky;top:0}
+th{background:var(--panel2);color:var(--acc);text-align:left;padding:9px 10px;position:sticky;top:0;cursor:pointer;user-select:none}
+th:hover{color:var(--acc2)}
 td{padding:8px 10px;border-top:1px solid var(--line);vertical-align:top}
 tr:hover td{background:#1b1433}
 .up{color:var(--up)} .dn{color:var(--dn)} .mut{color:var(--mut)} .warn{color:var(--warn)}
@@ -52,6 +53,7 @@ svg text{font-family:'Segoe UI',system-ui,sans-serif}
 <body>
 <header>
   <h1>🌌 <span class="accent">MULTIVERSE</span> ZONE</h1>
+  <button class="mclose" style="margin-left:auto" onclick="this.textContent='⏳…';boot().finally(()=>this.textContent='🔄 Refresh')" title="Dashboard refresh — data dobara load karo">🔄 Refresh</button>
   <div class="sub">Demand–Supply dashboard built 100% on GTF <b>"Trading in the Zone"</b> PDF rules (p3–p37) — zones = leg-in + base + exciting/explosive leg-out • score /8 • entry types • 2:1 setup.</div>
 </header>
 <div class="chips" id="chips"></div>
@@ -71,7 +73,14 @@ svg text{font-family:'Segoe UI',system-ui,sans-serif}
       <span class="mut" id="countlbl"></span>
     </div>
     <div class="tblwrap"><table id="tbl"><thead><tr>
-      <th>SYMBOL</th><th>LTP ₹</th><th>SIGNAL (p28/32)</th><th>1D ZONE (pattern • score • entry)</th><th>1W / 1M clock</th><th>CURVE (p31)</th><th></th>
+      <th onclick="sortBy('sym')" title="Click = A-Z / Z-A">SYMBOL <span id="s_sym"></span></th>
+      <th onclick="sortBy('ltp')" title="Click = low-high / high-low">LTP ₹ <span id="s_ltp"></span></th>
+      <th onclick="sortBy('sig')" title="Click = sort">SIGNAL (p28/32) <span id="s_sig"></span></th>
+      <th onclick="sortBy('z1d')" title="Click = score sort">1D ZONE <span id="s_z1d"></span></th>
+      <th onclick="sortBy('z1m')" title="Click = score sort">1M ZONE <span id="s_z1m"></span></th>
+      <th onclick="sortBy('clk')" title="Click = sort">1W / 1M CLOCK <span id="s_clk"></span></th>
+      <th onclick="sortBy('curve')" title="Click = sort">CURVE (p31) <span id="s_curve"></span></th>
+      <th></th>
     </tr></thead><tbody></tbody></table></div>
   </section>
 
@@ -141,28 +150,55 @@ function filtered(){
     return true;
   });
 }
+let SORT={key:"",dir:1};
+function sortBy(key){
+  if(SORT.key===key)SORT.dir*=-1;else{SORT.key=key;SORT.dir=1;}
+  renderTable();
+}
+function topZ(s,tf){const zs=((s.tfs[tf]||{}).zones)||[];return zs.slice().sort((a,b)=>b.score-a.score)[0]||null;}
+function rowVal(s,k){
+  switch(k){
+    case "sym":return s.sym;
+    case "ltp":return s.ltp;
+    case "sig":return s.signal||"";
+    case "z1d":{const z=topZ(s,"1D");return z?z.score:-1;}
+    case "z1m":{const z=topZ(s,"1M");return z?z.score:-1;}
+    case "clk":return (((s.tfs["1W"]||{}).clock)||"Z")+(((s.tfs["1M"]||{}).clock)||"Z");
+    case "curve":return s.curve?s.curve.pos:-1;
+  }
+  return 0;
+}
+function cmpv(a,b){return (typeof a==="string")?a.localeCompare(b):(a-b);}
+function zoneCell(z){
+  if(!z)return "<td><span class='mut'>—</span></td>";
+  return "<td>"+'<span class="badge '+(z.side==="DEMAND"?"g":"r")+'">'+z.pdf_pattern+"</span> "+
+    z.prox+"–"+z.dist+' <span class="badge a">📘'+z.score+"/8</span> "+
+    (z.exceptional?'<span class="badge w">EXC-'+z.exceptional+"</span> ":"")+
+    '<div class="mut" style="font-size:11px">'+z.et+" • "+(z.strength_label||"")+"</div></td>";
+}
 function renderTable(){
   if(!DATA)return;
   const rows=filtered();
-  const sort=document.getElementById("fSort").value;
-  if(sort==="az")rows.sort((a,b)=>a.sym.localeCompare(b.sym));
-  else if(sort==="za")rows.sort((a,b)=>b.sym.localeCompare(a.sym));
-  else if(sort==="score")rows.sort((a,b)=>((b.best?b.best.score:0)-(a.best?a.best.score:0)));
+  const drop=document.getElementById("fSort").value;
+  if(SORT.key)rows.sort((a,b)=>cmpv(rowVal(a,SORT.key),rowVal(b,SORT.key))*SORT.dir);
+  else if(drop==="az")rows.sort((a,b)=>a.sym.localeCompare(b.sym));
+  else if(drop==="za")rows.sort((a,b)=>b.sym.localeCompare(a.sym));
+  else if(drop==="score")rows.sort((a,b)=>((b.best?b.best.score:0)-(a.best?a.best.score:0)));
+  ["sym","ltp","sig","z1d","z1m","clk","curve"].forEach(k=>{
+    const e=document.getElementById("s_"+k);
+    if(e)e.textContent=SORT.key===k?(SORT.dir>0?"▲":"▼"):"";
+  });
   document.getElementById("countlbl").textContent=rows.length+" stocks";
   const tb=document.querySelector("#tbl tbody");
   tb.innerHTML=rows.map(s=>{
     const b=s.best;
-    const z1=(s.tfs["1D"]||{}).zones||[];
-    const top=z1.slice().sort((a,c)=>c.score-a.score)[0];
     const clk1w=((s.tfs["1W"]||{}).clock)||"—", clk1m=((s.tfs["1M"]||{}).clock)||"—";
     return "<tr>"+
     '<td><a class="tvlink '+(b?(b.side==="DEMAND"?"up":"dn"):"")+'" href="https://in.tradingview.com/chart/?symbol=NSE%3A'+s.sym+'" target="_blank" rel="noopener" title="TradingView chart — '+s.sym+'">📈 '+s.sym+'</a><div class="mut" style="font-size:11px">'+(s.comp||"")+'</div></td>'+
     "<td>₹"+s.ltp+"</td>"+
     '<td><span class="badge '+(String(s.signal).indexOf("BUY")===0?"g":String(s.signal).indexOf("SELL")===0?"r":"w")+'">'+s.signal+"</span></td>"+
-    "<td>"+(top? '<span class="badge '+(top.side==="DEMAND"?"g":"r")+'">'+top.pdf_pattern+"</span> "+
-        top.prox+"–"+top.dist+' <span class="badge a">📘'+top.score+"/8</span> "+
-        (top.exceptional?'<span class="badge w">EXC-'+top.exceptional+"</span> ":"")+
-        '<div class="mut" style="font-size:11px">'+top.et+" • "+(top.strength_label||"")+"</div>":"<span class='mut'>—</span>")+"</td>"+
+    zoneCell(topZ(s,"1D"))+
+    zoneCell(topZ(s,"1M"))+
     '<td><span class="badge '+(clk1w==="UP"?"g":clk1w==="DOWN"?"r":"w")+'">1W '+clk1w+'</span> <span class="badge '+(clk1m==="UP"?"g":clk1m==="DOWN"?"r":"w")+'">1M '+clk1m+"</span></td>"+
     "<td>"+(s.curve? '<b>'+(s.curve.band)+"</b> <span class='mut'>"+(s.curve.pos*100).toFixed(0)+"%</span>":'<span class="mut">—</span>')+"</td>"+
     '<td><button class="anabtn" data-sym="'+s.sym+'" onclick="openModal(this.dataset.sym)">🔍</button></td></tr>';

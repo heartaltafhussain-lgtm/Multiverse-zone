@@ -74,7 +74,7 @@ def scan_symbol(sym, company, df1d):
     tfs = {}
     frames = {"1D": df1d, "1W": resample(df1d, "W"), "1M": resample(df1d, "ME")}
     for tf, fr in frames.items():
-        if fr is None or len(fr) < 60:
+        if fr is None or len(fr) < 30:
             continue
         oz = fr["Open"].to_numpy(float)
         hz = fr["High"].to_numpy(float)
@@ -148,7 +148,7 @@ def demo_symbol(name, seed):
     rng = np.random.default_rng(seed)
     O, H, L, C = [], [], [], []
     px = 100.0
-    for k in range(70):
+    for k in range(1300):  # ~5 saal daily = 60+ monthly candles (1M clock/zones ke liye)
         o = px + float(rng.normal(0, 0.1))
         c = o + float(rng.normal(0, 0.2))
         O.append(o); C.append(c); H.append(max(o, c) + 0.3); L.append(min(o, c) - 0.3)
