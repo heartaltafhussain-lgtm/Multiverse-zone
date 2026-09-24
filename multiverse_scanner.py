@@ -11,6 +11,7 @@ Usage:
   python3 multiverse_scanner.py --demo          # synthetic demo data (offline)
 """
 import json
+import os
 import sys
 import datetime
 
@@ -23,6 +24,8 @@ from gtf_pdf_engine import (detect_zones_pdf, trend_clock, curve_position,
 CHART_BARS = 60
 UNIVERSE_CSV = "nifty500_universe.csv"
 OUT_JSON = "gtf_live_data.json"
+HISTORY_JSON = "gtf_history.json"
+HISTORY_KEEP_DAYS = 30
 VERSION = "Multiverse Zone v1.1 — GTF PDF engine (p3-37) | 1M FIX: period=max"
 
 
@@ -192,6 +195,35 @@ def build_demo():
 
 
 # ---------------------------------------------------------------- main
+def append_history(stocks, scan_date, demo=False):
+    """Roz ke 'best buy' flags (DEMAND, score>=7) gtf_history.json me save karo.
+    Dashboard isse 2 results tables banata hai:
+      (1) kal ke flags jo aaj >= +3% up hain
+      (2) aaj >= +3% up jinka last 10 din me buy signal aaya tha"""
+    flags = []
+    for s in stocks:
+        b = s.get("best")
+        if b and b["side"] == "DEMAND" and b["score"] >= 7:
+            flags.append({"sym": s["sym"], "score": b["score"],
+                          "ltp": s["ltp"], "pattern": b.get("pdf_pattern", ""),
+                          "grade": b.get("grade", "")})
+    hist = {"demo": bool(demo), "flags": {}}
+    if os.path.exists(HISTORY_JSON):
+        try:
+            with open(HISTORY_JSON, encoding="utf-8") as fh:
+                old = json.load(fh)
+            if isinstance(old.get("flags"), dict):
+                hist["flags"] = old["flags"]
+        except Exception:
+            pass
+    hist["flags"][scan_date] = flags
+    keep = sorted(hist["flags"])[-HISTORY_KEEP_DAYS:]
+    hist["flags"] = {d: hist["flags"][d] for d in keep}
+    with open(HISTORY_JSON, "w", encoding="utf-8") as fh:
+        json.dump(hist, fh, ensure_ascii=False)
+    print(f"[history] {HISTORY_JSON} — {scan_date}: {len(flags)} buy flags saved")
+
+
 def main():
     args = sys.argv[1:]
     demo = "--demo" in args
@@ -232,6 +264,7 @@ def main():
     }
     with open(OUT_JSON, "w", encoding="utf-8") as fh:
         json.dump(payload, fh, ensure_ascii=False)
+    append_history(stocks, payload["date"], demo)
     print(f"[done] {OUT_JSON} — stocks={len(stocks)} buy7={buy7} sell7={sell7} conf={conf}")
 
 

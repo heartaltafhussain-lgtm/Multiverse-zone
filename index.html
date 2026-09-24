@@ -65,6 +65,8 @@ svg text{font-family:'Segoe UI',system-ui,sans-serif}
   <button class="on" id="tabZ" onclick="showTab('z')">📊 ZONE DASHBOARD</button>
   <button id="tabC" onclick="showTab('c')">📖 GTF COURSE (12 TOPICS)</button>
   <button id="tabK" onclick="showTab('k')">🧮 CALCULATORS</button>
+  <button id="tabR" onclick="showTab('r')">🗺 TRADE ROADMAP</button>
+  <button id="tabV" onclick="showTab('v')">✅ RESULTS</button>
 </nav>
 <main>
   <section id="secZ">
@@ -107,6 +109,21 @@ svg text{font-family:'Segoe UI',system-ui,sans-serif}
         </div><div id="scOut"></div></div>
     </div>
   </section>
+
+  <section id="secR" style="display:none"><div class="course" id="roadCards"></div></section>
+  <section id="secV" style="display:none">
+    <div id="resNote" style="margin:10px 0"></div>
+    <div style="margin:14px 0 6px"><b style="font-size:15px">🟢 Table 1 — Kal ke BEST BUY signals → Aaj ≥ +3% up</b>
+      <div class="mut" style="font-size:12px">Jo stocks pichle scan me Type-1 (📘≥7) demand buy the aur aaj ka LTP signal wale din se ≥ 3% upar hai.</div></div>
+    <div class="tblwrap"><table id="tblA"><thead><tr>
+      <th>SYMBOL</th><th>SIGNAL DATE (kal)</th><th>PATTERN</th><th>📘 SCORE</th><th>LTP TAB ₹</th><th>LTP AAJ ₹</th><th>% UP</th>
+    </tr></thead><tbody></tbody></table></div>
+    <div style="margin:22px 0 6px"><b style="font-size:15px">🚀 Table 2 — Aaj ≥ +3% up • last 10 din me BUY signal kab aaya tha</b>
+      <div class="mut" style="font-size:12px">Aaj jo stocks ≥ 3% up hain aur pichle 10 din me inka Type-1 demand buy signal aaya tha. "LAST BUY SIGNAL" = sabse recent signal date.</div></div>
+    <div class="tblwrap"><table id="tblB"><thead><tr>
+      <th>SYMBOL</th><th>AAJ % UP</th><th>LAST BUY SIGNAL</th><th>KITNE DIN PEHLE</th><th>📘 SCORE TAB</th>
+    </tr></thead><tbody></tbody></table></div>
+  </section>
 </main>
 <footer>⚠️ Educational dashboard — investment advice nahi. Past performance ≠ future guarantee. Data: GitHub Actions daily scan (yfinance) ya <code>--demo</code> mode. Engine: <code>gtf_pdf_engine.py</code> (51/51 PDF-rule tests pass).</footer>
 
@@ -129,15 +146,18 @@ async function boot(){
     '<span class="chip up">🟢 Type-1 demand (≥7): <b>'+(s.buy7||0)+'</b></span>'+
     '<span class="chip dn">🔴 Type-1 supply (≥7): <b>'+(s.sell7||0)+'</b></span>'+
     '<span class="chip" style="color:var(--acc2)">⏳ live confirmations (p34-35): <b>'+(s.confirmations||0)+'</b></span>'+
-    (DATA.demo?'<span class="chip warn">⚠ DEMO DATA</span>':'');
-  renderTable(); renderCourse(); calcRisk(); calcScore();
+    (DATA.demo?'<span class="chip warn">⚠ DEMO DATA</span>':'')+
+    (String(DATA.version||"").indexOf("v1.1")===-1?'<span class="chip warn">⚠ DATA PURANE SCANNER SE — naya multiverse_scanner.py upload karke Actions → Run workflow karo (1M ke liye)</span>':'<span class="chip">⚙ '+String(DATA.version).split("|")[0]+"</span>");
+  renderTable(); renderCourse(); calcRisk(); calcScore(); renderRoad(); loadHist();
 }
 function showTab(t){
-  ["Z","C","K"].forEach(x=>document.getElementById("tab"+x).classList.remove("on"));
+  ["Z","C","K","R","V"].forEach(x=>document.getElementById("tab"+x).classList.remove("on"));
   document.getElementById("tab"+t.toUpperCase()).classList.add("on");
   document.getElementById("secZ").style.display=t==="z"?"":"none";
   document.getElementById("secC").style.display=t==="c"?"":"none";
   document.getElementById("secK").style.display=t==="k"?"":"none";
+  document.getElementById("secR").style.display=t==="r"?"":"none";
+  document.getElementById("secV").style.display=t==="v"?"":"none";
 }
 function zline(z){return (z.pdf_pattern||"")+" "+(z.prox||0)+"–"+(z.dist||0);}
 function filtered(){
@@ -319,6 +339,71 @@ function renderCourse(){
   ["📍 Curve (p30-32)","Fresh SZ↔DZ proximals ke thirds: VERY HIGH/HIGH=SELL, LOW/VERY LOW=BUY, EQUILIBRIUM=trend follow."],
   ["🛡 Risk (p37)","1%/1.5%/2% risk tiers; Qty=Risk₹÷(Entry−SL); ~10 trades/month; 2:1 RR."]];
   document.getElementById("courseCards").innerHTML=T.map(t=>'<div class="zcard"><div class="zh">'+t[0]+'</div><div class="mut">'+t[1]+"</div></div>").join("");
+}
+/* ---------- roadmap ---------- */
+
+/* ---------- RESULTS tab: signal vs outcome (gtf_history.json) ---------- */
+let HIST=null;
+async function loadHist(){
+  try{const r=await fetch("gtf_history.json?"+Date.now(),{cache:"no-store"});if(r.ok)HIST=await r.json();}catch(e){}
+  renderResults();
+}
+function dayDiff(a,b){return Math.round((new Date(a)-new Date(b))/864e5);}
+function resLink(sym){return '<a class="tvlink" href="https://in.tradingview.com/chart/?symbol=NSE%3A'+sym+'" target="_blank" rel="noopener">📈 '+sym+'</a>';}
+function renderResults(){
+  const note=document.getElementById("resNote");
+  const tbA=document.querySelector("#tblA tbody"), tbB=document.querySelector("#tblB tbody");
+  if(!HIST||!HIST.flags||!Object.keys(HIST.flags).length){
+    note.innerHTML='<span class="chip warn">📂 gtf_history.json nahi mila — naya scanner roz buy-flags save karega; 1-2 scan ke baad ye tables bhar jayengi. (turant backfill: python3 build_history.py)</span>';
+    tbA.innerHTML=""; tbB.innerHTML=""; return;
+  }
+  const dates=Object.keys(HIST.flags).sort();
+  const scan=DATA.date||dates[dates.length-1];
+  note.innerHTML='<span class="chip">📂 history: <b>'+dates.length+' din</b> ('+dates[0]+' → '+dates[dates.length-1]+')</span>'+(HIST.demo?'<span class="chip warn">⚠ DEMO</span>':'')+(HIST.note?'<span class="chip mut">'+HIST.note+'</span>':'');
+  const yest=dates.filter(d=>d<scan).slice(-1)[0]||null;
+  const bySym={};(DATA.stocks||[]).forEach(s=>{bySym[s.sym]=s;});
+  /* Table 1: kal ke Type-1 buy flags jo aaj >= +3% */
+  let a=[];
+  if(yest){(HIST.flags[yest]||[]).forEach(f=>{
+    const s=bySym[f.sym]; if(!s||!f.ltp)return;
+    const pct=(s.ltp/f.ltp-1)*100;
+    if(pct>=3)a.push({f:f,s:s,pct:pct});
+  });}
+  a.sort((x,y)=>y.pct-x.pct);
+  tbA.innerHTML=a.length?a.map(r=>
+    "<tr><td>"+resLink(r.f.sym)+"</td><td>"+yest+"</td><td>🟢 "+(r.f.pattern||"")+"</td><td>📘 "+r.f.score+"</td><td>₹"+r.f.ltp+"</td><td>₹"+r.s.ltp+"</td><td><span class='badge g'>+"+r.pct.toFixed(2)+"%</span></td></tr>").join("")
+    :'<tr><td colspan="7" class="mut">'+(yest?("Koi bhi "+yest+" wala best-buy stock aaj ≥ +3% nahi hai — ye normal hai, har din winners nahi milte."):"History me scan date se purani date abhi nahi — kal se data aana shuru hoga.")+"</td></tr>";
+  /* Table 2: aaj >= +3% movers jinka last 10 din me buy signal aaya tha */
+  let b=[];
+  (DATA.stocks||[]).forEach(s=>{
+    const cd=s.candles; if(!cd||!cd.c||cd.c.length<2)return;
+    const pct=(cd.c[cd.c.length-1]/cd.c[cd.c.length-2]-1)*100;
+    if(pct<3)return;
+    let hit=null;
+    for(let i=dates.length-1;i>=0;i--){
+      const d=dates[i];
+      if(dayDiff(scan,d)>10)break;
+      const f=(HIST.flags[d]||[]).find(x=>x.sym===s.sym);
+      if(f){hit={d:d,f:f};break;}
+    }
+    if(hit)b.push({s:s,pct:pct,hit:hit});
+  });
+  b.sort((x,y)=>y.pct-x.pct);
+  tbB.innerHTML=b.length?b.map(r=>
+    "<tr><td>"+resLink(r.s.sym)+"</td><td><span class='badge g'>+"+r.pct.toFixed(2)+"%</span></td><td>"+r.hit.d+"</td><td>"+dayDiff(scan,r.hit.d)+" din</td><td>📘 "+r.hit.f.score+" ("+(r.hit.f.pattern||"")+")</td></tr>").join("")
+    :'<tr><td colspan="5" class="mut">Aaj ≥ +3% up koi aisa stock nahi jiska last 10 din me Type-1 buy signal aaya ho.</td></tr>';
+}
+function renderRoad(){
+  const R=[["🥇 STEP 1 — LOCATION (p30-32)","CURVE column: LOW/VERY LOW = BUY side ✅ • HIGH/VERY HIGH = sell side, demand buy ❌ • EQUILIBRIUM = trend follow. Weekly supply ke neeche daily demand buy = SL likely."],
+  ["🥈 STEP 2 — TREND (p27-28)","1W/1M CLOCK dekho: demand buy ke liye 1W = UP chahiye. DOWN clock me demand buy = extremely dangerous. SIGNAL column: BUY (trend UP) / BUY SIDE (LTF)."],
+  ["🥉 STEP 3 — ZONE QUALITY (p11-22)","1D ZONE: pattern DBR/RBR • 📘≥7 Type-1 • VERY STRONG BUYING • EXC badge = extra safety • 🔍 me base 1-3 ✅ / >5 ❌ • Closing ✓ • AUTHENTIC • tests 0 (FRESH) best."],
+  ["4️⃣ STEP 4 — MULTI-TF (p29)","1M ZONE column me bhi DEMAND neeche = double support = best. HTF=location, ITF=trend, LTF=execution."],
+  ["5️⃣ STEP 5 — ENTRY (p16-17,34-35)","🔍 popup: ENTRY/SL/TGT 2:1 lines. Score ≥7 = Type-1 set&forget (entry proximal ke bahar). 5-6 = TYPE 2/3 LIVE badge ka wait. <5 = NO TRADE. Execution 15/5-min pe."],
+  ["6️⃣ STEP 6 — RISK (p37)","Calculators tab: 1%/1.5%/2% tier → qty. Max ~10 trades/month. 2:1 RR — 5W/5L bhi profit. Close below distal = idea invalid."],
+  ["🏆 BEST STOCK FILTER COMBO","fSide=DEMAND + fScore≥7 + fSig=BUY → 1D ZONE header click (score sort) → har 🔍 pe checklist: curve LOW ✔ 1W UP ✔ score≥7 fresh ✔ VERY STRONG ✔ base 1-3 ✔ closing✔ authentic ✔ 1M demand ✔ upar supply nahi ✔. Shortlist max 5-8."],
+  ["⚠️ RED FLAGS — SKIP","score<5 • DOWN clock demand • >5 base + weak legout • NON-AUTHENTIC • closing ✗ • curve HIGH • 2+ tested • target ke raaste me HTF supply."],
+  ["📆 WEEKLY (Sunday)","1M/1W zones review; watchlist refresh (5-8 stocks); trades journal karo — discipline = profit."]];
+  document.getElementById("roadCards").innerHTML=R.map(t=>'<div class="zcard"><div class="zh">'+t[0]+'</div><div class="mut">'+t[1]+"</div></div>").join("");
 }
 /* ---------- calculators ---------- */
 function calcRisk(){
